@@ -5,6 +5,7 @@ from pydantic import BaseModel,Field
 from typing import Literal, List, Union
 from fastapi import FastAPI, File, UploadFile
 import joblib
+import os
 
 description = """
 🚗 
@@ -43,7 +44,8 @@ app = FastAPI(
     title="Getaround api",
     description=description,
     version="0.1",
-    openapi_tags=tags_metadata
+    openapi_tags=tags_metadata,
+    root_path=os.getenv("ROOT_PATH", "")
 )
 
 experiment_name = 'getaround_rental_price_predictor'
