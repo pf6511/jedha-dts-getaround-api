@@ -44,8 +44,7 @@ app = FastAPI(
     title="Getaround api",
     description=description,
     version="0.1",
-    openapi_tags=tags_metadata,
-    root_path=os.getenv("ROOT_PATH", "")
+    openapi_tags=tags_metadata
 )
 
 experiment_name = 'getaround_rental_price_predictor'
