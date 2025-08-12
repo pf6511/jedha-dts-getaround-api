@@ -3,7 +3,7 @@ import uvicorn
 import pandas as pd 
 from pydantic import BaseModel,Field
 from typing import Literal, List, Union
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException
 import joblib
 import os
 
@@ -47,17 +47,28 @@ app = FastAPI(
     openapi_tags=tags_metadata
 )
 
-experiment_name = 'getaround_rental_price_predictor'
-experiment = mlflow.get_experiment_by_name(experiment_name)
+# --- Validate required env vars ---
+if not os.getenv("MLFLOW_TRACKING_URI"):
+    raise RuntimeError("❌ MLFLOW_TRACKING_URI is not set. Please configure it in Hugging Face Space secrets.")
 
-runs = mlflow.search_runs(
-    experiment_ids=[experiment.experiment_id],
-    order_by=["metrics.rmse ASC"],  # or "metrics.neg_root_mean_squared_error DESC"
-    max_results=1
-)
+# --- Load best model at startup ---
+try:
+    experiment_name = 'getaround_rental_price_predictor'
+    experiment = mlflow.get_experiment_by_name(experiment_name)
 
-best_run_id = runs.iloc[0]["run_id"]
-print(f'best_run_id : {best_run_id}')
+    runs = mlflow.search_runs(
+        experiment_ids=[experiment.experiment_id],
+        order_by=["metrics.rmse ASC"],  # or "metrics.neg_root_mean_squared_error DESC"
+        max_results=1
+    )
+
+    best_run_id = runs.iloc[0]["run_id"]
+    print(f'best_run_id : {best_run_id}')
+    model_uri = f"runs:/{best_run_id}/model"
+    model = mlflow.sklearn.load_model(model_uri)
+    print(f'model_uri : {model_uri} loaded successfully.')
+except Exception as e:
+    raise RuntimeError(f"❌ Failed to load model: {e}")
 
 class RentalPricePredictInput(BaseModel):
     model_key:str
@@ -80,22 +91,20 @@ def predict(input_data: RentalPricePredictInput):
     """
     Prediction of rental price for a given RentalPriceInput
     """
-    model_uri = f"runs:/{best_run_id}/model"
-    print(f'model_uri : {model_uri}')
     try:
-        model = mlflow.sklearn.load_model(model_uri)
+        input_df = pd.DataFrame([input_data.model_dump()])
+        prediction = model.predict(input_df)
+        return {"prediction": float(prediction[0])}
         print("Model loaded.")
     except Exception as e:
-        print(f"An error occurred when loading model : {e}")
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
         
-    input_df = pd.DataFrame([input_data.model_dump()])
-    prediction = model.predict(input_df)
-    return {"prediction": float(prediction[0])}
+
 
 @app.get("/", tags=["Introduction Endpoints"])
 async def index():
     """
     Simply returns a welcome message!
     """
-    message = "Hello world! This `/` is the most simple and default endpoint. If you want to learn more, check out documentation of the api at `/docs`"
+    message = "welcome to getaround api, check out documentation of the api at `/docs`"
     return message
