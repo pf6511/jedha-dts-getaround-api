@@ -39,6 +39,9 @@ tags_metadata = [
     }
 ]
 
+model = None
+model_uri = None
+best_run_id = None
 
 app = FastAPI(
     title="Getaround api",
@@ -51,24 +54,34 @@ app = FastAPI(
 if not os.getenv("MLFLOW_TRACKING_URI"):
     raise RuntimeError("❌ MLFLOW_TRACKING_URI is not set. Please configure it in Hugging Face Space secrets.")
 
-# --- Load best model at startup ---
-try:
-    experiment_name = 'getaround_rental_price_predictor'
-    experiment = mlflow.get_experiment_by_name(experiment_name)
+@app.on_event("startup")
+def load_model_at_startup():
+    """Load the best MLflow model when the API starts."""
+    global model, model_uri, best_run_id    
+    print("Starting API, loading model...")
+    try:
+        experiment_name = 'getaround_rental_price_predictor'
+        experiment = mlflow.get_experiment_by_name(experiment_name)
+        if experiment is None:
+            raise ValueError(f"Experiment '{experiment_name}' not found.")
+        
+        runs = mlflow.search_runs(
+            experiment_ids=[experiment.experiment_id],
+            order_by=["metrics.rmse ASC"],  # or "metrics.neg_root_mean_squared_error DESC"
+            max_results=1
+        )
 
-    runs = mlflow.search_runs(
-        experiment_ids=[experiment.experiment_id],
-        order_by=["metrics.rmse ASC"],  # or "metrics.neg_root_mean_squared_error DESC"
-        max_results=1
-    )
-
-    best_run_id = runs.iloc[0]["run_id"]
-    print(f'best_run_id : {best_run_id}')
-    model_uri = f"runs:/{best_run_id}/model"
-    model = mlflow.sklearn.load_model(model_uri)
-    print(f'model_uri : {model_uri} loaded successfully.')
-except Exception as e:
-    raise RuntimeError(f"❌ Failed to load model: {e}")
+        if runs.empty:
+            raise ValueError("No runs found for this experiment.")
+        
+        best_run_id = runs.iloc[0]["run_id"]
+        model_uri = f"runs:/{best_run_id}/model"
+        print(f"Loading model from: {model_uri}")
+        model = mlflow.sklearn.load_model(model_uri)
+        print(f'✅ model_uri : {model_uri} loaded successfully.')
+    except Exception as e:
+        print(f"❌ Failed to load model: {e}")
+        model = None
 
 class RentalPricePredictInput(BaseModel):
     model_key:str

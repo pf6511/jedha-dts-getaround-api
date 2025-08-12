@@ -7,7 +7,7 @@ pandas
 openpyxl 
 mlflow 
 boto3 
-scikit-learn
+scikit-learn==1.7.0
 python-multipart
 fsspec
 s3fs
