@@ -12,12 +12,12 @@ description = """
 
 This app is made for predicting getaround rental price
 
-## Introduction Endpoints
+# Introduction Endpoints
 
 Here are two endpoints you can try:
 * `/`: **GET** request that display a simple default message.
 
-## Machine Learning
+# Machine Learning
 
 This is a Machine Learning endpoint that predict car rental price given some inputs. Here is the endpoint:
 
@@ -99,10 +99,20 @@ class RentalPricePredictInput(BaseModel):
     winter_tires:bool
   
 
+
+@app.get("/", tags=["Introduction Endpoints"])
+async def index():
+    """
+    ** Simply returns a welcome message!
+    """
+    message = "welcome to getaround api, check out documentation of the api at `/docs`"
+    return message
+
 @app.post("/predict", tags=["Machine Learning"])
 def predict(input_data: RentalPricePredictInput):
     """
-    Prediction of rental price for a given RentalPriceInput
+    ** Prediction of rental price for a given RentalPriceInput
+       check request body schema below (RentalPriceInput)
     """
     if model is None:
         raise HTTPException(status_code=500, detail="Model not loaded.")
@@ -113,12 +123,3 @@ def predict(input_data: RentalPricePredictInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
         
-
-
-@app.get("/", tags=["Introduction Endpoints"])
-async def index():
-    """
-    Simply returns a welcome message!
-    """
-    message = "welcome to getaround api, check out documentation of the api at `/docs`"
-    return message
