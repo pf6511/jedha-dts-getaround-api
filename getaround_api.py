@@ -104,11 +104,12 @@ def predict(input_data: RentalPricePredictInput):
     """
     Prediction of rental price for a given RentalPriceInput
     """
+    if model is None:
+        raise HTTPException(status_code=500, detail="Model not loaded.")
     try:
         input_df = pd.DataFrame([input_data.model_dump()])
         prediction = model.predict(input_df)
         return {"prediction": float(prediction[0])}
-        print("Model loaded.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction failed: {e}")
         
