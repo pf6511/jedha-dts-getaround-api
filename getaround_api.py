@@ -103,7 +103,7 @@ class RentalPricePredictInput(BaseModel):
 @app.get("/", tags=["Introduction Endpoints"])
 async def index():
     """
-    ** Simply returns a welcome message!
+    ## ** Simply returns a welcome message!
     """
     message = "welcome to getaround api, check out documentation of the api at `/docs`"
     return message
@@ -111,7 +111,8 @@ async def index():
 @app.post("/predict", tags=["Machine Learning"])
 def predict(input_data: RentalPricePredictInput):
     """
-    ** Prediction of rental price for a given RentalPriceInput
+    ## ** Prediction of rental price for a given RentalPriceInput
+
        check request body schema below (RentalPriceInput)
     """
     if model is None:
