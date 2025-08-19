@@ -12,3 +12,4 @@ python-multipart
 fsspec
 s3fs
 requests
+-e ./getaround-schemas
